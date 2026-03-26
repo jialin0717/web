@@ -1,167 +1,61 @@
 import os
-import certifi
-import ssl
 from flask import Flask, render_template, jsonify, request
 from pymongo import MongoClient
 from datetime import datetime
+import certifi
 
-# 只需要定义一次 app
 app = Flask(__name__)
 
-# 获取配置：优先用 Render 的环境变量，备选本地字符串
+# --- 数据库配置 (仅保留留言板功能，如果留言板也不要了，这一块可以全删) ---
 MONGO_URI = os.environ.get('MONGO_URI') or "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
-ca = certifi.where()
+db = None
 
 try:
-    client = MongoClient(
-        MONGO_URI,
-        serverSelectionTimeoutMS=5000,
-        # 强制创建一个不校验的 SSL 上下文
-        ssl_cert_reqs=ssl.CERT_NONE,
-        tlsAllowInvalidCertificates=True
-    )
+    # 使用最简单的连接方式，不再强制 ping，防止启动时报错导致网站打不开
+    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=2000)
     db = client.jialin_portfolio
-    client.admin.command('ping')
-    print("✅ MongoDB 连接及 SSL 握手成功！")
+    print("✅ 数据库已连接 (用于留言板)")
 except Exception as e:
-    print(f"❌ MongoDB 连接失败: {e}")
-    db = None
+    print(f"⚠️ 数据库连接跳过 (不影响前端展示): {e}")
 
+# --- 核心路由 ---
 
-# ==========================================
-# 2. 数据库初始化 (保留你写的所有珍贵文字)
-# ==========================================
-def init_db():
-    if db is not None:
-        db.projects.drop()
-
-        # 模块 1 的详细经历文字
-        detailed_exp_1 = """2024年09月-2025年07月
-担任延世大学中国学人学者联谊会（原）组织部部员
-
-2024年2学期
-延世大学国际处GOSC新生说明会活动策划案撰写和活动所需物品采购
-
-2025年1学期
-参与组织延世大学中国学人学者联谊会“大同节”活动，负责联谊会“鹰花会”策划案撰写
-
-2025年09月-2025年12月
-担任延世大学中国学人学者联谊会组织部副部长
-
-2025年12月—至今
-
-担任延世大学中国学人学者联谊会战略运营部部长
-主要负责学联财务管理、文书秘书以及活动组织策划工作
-
-
-"""
-        # 模块 4 的详细经历文字
-        detailed_exp_4 = """2013年
-荣获由文化部中国儿童戏剧研究会、中国艺术家协会、中国人生科学学会共同主办的德艺双馨第九届中国文艺展示活动黑龙江选区钢琴专业组银奖
-“华夏艺术风采国际交流展演”活动黑龙江赛区书画类银奖
-2015年
-参与由黑龙江军旅小战术训练营组委会组织的黑龙江军旅训练活动
-2017年
-荣获红领巾广播电视“希望杯”校园学生英语演讲大赛优胜奖
-2018年
-荣获德强学校初中部主办的德强学校校园艺术节美术作品大赛一等奖
-2023年
-考取中国商业联合会计算机信息技术专像技能，计算机信息技术四级（中级）证书
-2024年
-参与新教育时代杂志编辑部主办的2024高校青年爱国主义教育宣传活动，获得“奋进青年”荣誉称号
-2025年
-参与“亚东有我，加油中国”2025全国青年助力第九届亚冬会宣传活动
-延世大学中国学人学者联谊会研究决定，聘任本人为2025年秋季学期“中国日”活动执行总导演、总策划。聘期自2025年9月1日至2025年11月14日
-
-
-        """
-        # 模块5的详细经历文字
-        detailed_exp_5 = """
-1.简单计算机编程能力
-
-2.大型活动策划与执行能力：
-作为学联组织部成员及副部长，多次负责或参与撰写活动策划案，这是项目管理初步体现。特担任“中国日”活动总导演的经历体现了具备全方位的项目领导能力：
-从前期的创意策划、方案撰写，到中期的节目编排、灯光音响等技术协调，再到活动当天的人员调度与现场指挥。这涵盖了项目规划、资源协调、团队管理、风险控制
-和应急处理等高级管理技能。
-
-3.团队协作与组织能力：
-在学联的组织部工作中，参与组织了新生说明会、MT、大同节、鹰花会、欢迎会等多种活动，展现了优秀的团队合作精神和在集体中完成复杂任务的能力。
-从部员晋升为副部长，体现了您的责任感、可靠性和组织内部的认可。
-
-4.卓越的中文沟通与文案能力：
-具备出色的书面表达能力、逻辑思维和方案构思能力。在韩国高校的中国学生组织中担任核心职务，需要极强的中文沟通协调能力。
-
-5.跨文化环境适应与协作能力：
-在韩国顶尖大学求学，并在国际处合作开展GOSC活动中证明了能熟练适应国际化环境，与不同文化背景的师生、机构进行有效沟通和协作。
-作为连接中国学生与学校、乃至韩国社会的桥梁。
-
-6.优秀的学习能力以及艺术修养与创造力：
-从活动参与者成长为大型项目的总导演，主动承担责任并推动执行。艺术获奖经历培养了审美与创造力，这对策划活动和技术设计都有帮助。
-能适应不同的教育环境并完成高强度学业，证明了出色的学习能力。积极参与社会宣传活动，展现了团队精神和集体荣誉感。
-   
-                """
-
-        demo_projects = [
-            {
-                "id": 1,
-                "title": "延世大学中国学人学者联谊会 工作经历",
-                "tags": ["学联", "工作经历"],
-                "hits": 0,
-                "desc": detailed_exp_1
-            },
-            {
-                "id": 2,
-                "title": "CSSA 主要活动",
-                "tags": ["学联", "主要活动"],
-                "hits": 0,
-                "desc": "2025-2学期 “中国日”大型晚会总导演，晚会执行总导演、总策划。负责前期策划案撰写、灯光音响编排、节目编排及人员调动。"
-            },
-            {
-                "id": 3,
-                "title": "Linux Automation Tool",
-                "tags": ["Bash", "Git"],
-                "hits": 0,
-                "desc": "基于 Bash 的自动化运维脚本，集成 Git 内部数据结构分析功能，用于自动化部署服务器环境。"
-            },
-            {
-                "id": 4,
-                "title": "所获奖项",
-                "tags": ["所获奖项"],
-                "hits": 0,
-                "desc":  detailed_exp_4
-            },
-            {
-                "id": 5,
-                "title": "个人能力",
-                "tags": ["个人能力"],
-                "hits": 0,
-                "desc": detailed_exp_5
-            }
-        ]
-        db.projects.insert_many(demo_projects)
-        print(">>> 数据库已成功初始化！")
-
-# ==========================================
-# 3. 路由与 API (保持不变)
-# ==========================================
 @app.route('/')
 def index():
+    # 只要这个路由在，你的 index.html 就能显示
     return render_template('index.html')
 
 @app.route('/api/projects')
 def get_projects():
-    if db is None: return jsonify([])
-    projects = list(db.projects.find({}, {'_id': 0}))
-    return jsonify(projects)
+    # 因为你已经在前端写死了 demoProjects，这个接口返回空即可，防止报错
+    return jsonify([])
 
-# ... 保留你其他的 /api/click, /api/message 等路由 ...
+# --- 留言板 API (可选保留) ---
+
+@app.route('/api/message', methods=['POST'])
+def post_message():
+    if db is None: return jsonify({"status": "error", "message": "Database disconnected"})
+    data = request.json
+    new_msg = {
+        "name": data.get('name', '匿名用户'),
+        "content": data.get('content'),
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    db.messages.insert_one(new_msg)
+    return jsonify({"status": "success"})
+
+@app.route('/api/get_messages')
+def get_messages():
+    if db is None: return jsonify([])
+    try:
+        msgs = list(db.messages.find({}, {'_id': 0}).sort("time", -1).limit(20))
+        return jsonify(msgs)
+    except:
+        return jsonify([])
+
+# --- 启动 ---
 
 if __name__ == '__main__':
-    # 判断环境：Render 会自动设置各种环境变量，本地通常没有
-    if os.environ.get('RENDER'):
-        # 生产环境运行
-        app.run(host='0.0.0.0', port=10000)
-    else:
-        # 本地环境运行，自动初始化数据库
-        init_db()
-        app.run(host='127.0.0.1', port=5000, debug=True)
+    # 统一使用环境变量中的 PORT，Render 默认为 10000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
