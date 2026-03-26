@@ -6,48 +6,55 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# --- 1. 数据库配置 (仅保留留言板功能) ---
-# 既然项目内容已经在 HTML 里了，数据库现在只负责存取访客留言
-MONGO_URI = os.environ.get('MONGO_URI') or "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
+# ==========================================
+# 1. 数据库配置 (优先尝试本地连接)
+# ==========================================
+# 如果是在你电脑上跑，它连 localhost；如果在 Render 上跑，它尝试连环境变量里的地址
+MONGO_URI = os.environ.get('MONGO_URI') or "mongodb://localhost:27017/"
 db = None
 
 try:
-    # 使用 certifi 解决 Render 环境下的 SSL 证书问题
+    # 设置 2 秒超时，防止数据库连不上时卡住整个网页加载
     client = MongoClient(
         MONGO_URI,
-        tlsCAFile=certifi.where(),
-        serverSelectionTimeoutMS=5000
+        tlsCAFile=certifi.where() if "mongodb+srv" in MONGO_URI else None,
+        serverSelectionTimeoutMS=2000
     )
     db = client.jialin_portfolio
-    # 仅测试连接，不成功也不影响网页打开
+    # 简单的连接测试
     client.admin.command('ping')
-    print("✅ MongoDB 留言板数据库连接成功")
+    print("✅ 数据库连接成功！")
 except Exception as e:
-    print(f"⚠️ 数据库连接异常 (不影响项目展示): {e}")
+    print(f"⚠️ 数据库未就绪 (不影响项目展示): {e}")
     db = None
 
-# --- 2. 核心路由 ---
+# ==========================================
+# 2. 页面路由
+# ==========================================
 
 @app.route('/')
 def index():
-    # 只要这个在，你的 index.html 就能正常加载
+    # 核心：直接返回你的 index.html
+    # 你的延世大学经历现在全在这个 HTML 里的 demoProjects 数组中
     return render_template('index.html')
 
 @app.route('/api/projects')
 def get_projects():
-    # 关键修改：返回一个空列表
-    # 因为 index.html 里的 fetchProjects 已经不再依赖这个接口了
+    # 既然项目已经写死在前端，这个接口返回空即可
     return jsonify([])
 
-# --- 3. 留言板 API (保持不变) ---
+# ==========================================
+# 3. 留言板功能接口 (保留)
+# ==========================================
 
 @app.route('/api/message', methods=['POST'])
 def post_message():
-    if db is None: return jsonify({"status": "error", "message": "数据库未连接"})
+    if db is None:
+        return jsonify({"status": "error", "message": "数据库未连接，无法留言"})
     try:
         data = request.json
         new_msg = {
-            "name": data.get('name', '访客'),
+            "name": data.get('name', '匿名访客'),
             "content": data.get('content', ''),
             "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -58,14 +65,21 @@ def post_message():
 
 @app.route('/api/get_messages')
 def get_messages():
-    if db is None: return jsonify([])
+    if db is None:
+        return jsonify([])
     try:
+        # 获取最新的 20 条留言
         msgs = list(db.messages.find({}, {'_id': 0}).sort("time", -1).limit(20))
         return jsonify(msgs)
     except:
         return jsonify([])
 
+# ==========================================
+# 4. 启动配置
+# ==========================================
+
 if __name__ == '__main__':
-    # 适配 Render 的端口
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    # 自动识别 Render 端口，本地默认为 5000
+    port = int(os.environ.get('PORT', 5000))
+    # 生产环境 debug 应设为 False
+    app.run(host='0.0.0.0', port=port, debug=False)
