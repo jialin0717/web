@@ -138,7 +138,26 @@
         "tags": ["个人能力"],
         "desc": "1.简单计算机编程能力\n2.大型活动策划与执行能力（中国日总导演）\n3.跨文化环境适应与协作能力..."
     }
-];
+]
+    function loadProjects() {
+    const projectContainer = document.getElementById('project-list'); // 假设你的容器 ID 是这个
+    projectContainer.innerHTML = ''; // 清空加载动画
+
+    // 不再从接口读取，直接遍历我们写死的数据
+    demoProjects.forEach(project => {
+        const card = `
+            <div class="project-card">
+                <h3>${project.title}</h3>
+                <div class="tags">${project.tags.map(t => `<span>${t}</span>`).join('')}</div>
+                <p style="white-space: pre-wrap;">${project.desc}</p>
+            </div>
+        `;
+        projectContainer.innerHTML += card;
+    });
+}
+
+// 页面加载完成后立即执行
+document.addEventListener('DOMContentLoaded', loadProjects);
 
     // 1. 视图切换逻辑 (Dynamic Web)
     function switchView(view) {
