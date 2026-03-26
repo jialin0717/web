@@ -6,37 +6,40 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# --- 数据库连接 (仅用于留言板) ---
+# --- 1. 数据库配置 (仅保留留言板功能) ---
+# 既然项目内容已经在 HTML 里了，数据库现在只负责存取访客留言
 MONGO_URI = os.environ.get('MONGO_URI') or "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
+db = None
 
 try:
-    # 使用 certifi 解决 SSL 证书问题，serverSelectionTimeoutMS 设短一点防止卡死
+    # 使用 certifi 解决 Render 环境下的 SSL 证书问题
     client = MongoClient(
         MONGO_URI,
         tlsCAFile=certifi.where(),
-        tlsAllowInvalidCertificates=True,
         serverSelectionTimeoutMS=5000
     )
     db = client.jialin_portfolio
-    # 尝试检查连接
+    # 仅测试连接，不成功也不影响网页打开
     client.admin.command('ping')
-    print("✅ MongoDB 连接成功 (留言板已就绪)")
+    print("✅ MongoDB 留言板数据库连接成功")
 except Exception as e:
-    print(f"⚠️ 数据库连接异常: {e}")
+    print(f"⚠️ 数据库连接异常 (不影响项目展示): {e}")
     db = None
 
-# --- 路由 ---
+# --- 2. 核心路由 ---
 
 @app.route('/')
 def index():
+    # 只要这个在，你的 index.html 就能正常加载
     return render_template('index.html')
 
-# 这里的项目接口返回空即可，因为前端已经不靠它了
 @app.route('/api/projects')
 def get_projects():
+    # 关键修改：返回一个空列表
+    # 因为 index.html 里的 fetchProjects 已经不再依赖这个接口了
     return jsonify([])
 
-# --- 留言板 API (保留) ---
+# --- 3. 留言板 API (保持不变) ---
 
 @app.route('/api/message', methods=['POST'])
 def post_message():
@@ -44,7 +47,7 @@ def post_message():
     try:
         data = request.json
         new_msg = {
-            "name": data.get('name', '匿名用户'),
+            "name": data.get('name', '访客'),
             "content": data.get('content', ''),
             "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -57,12 +60,12 @@ def post_message():
 def get_messages():
     if db is None: return jsonify([])
     try:
-        # 获取最近 20 条留言
         msgs = list(db.messages.find({}, {'_id': 0}).sort("time", -1).limit(20))
         return jsonify(msgs)
     except:
         return jsonify([])
 
 if __name__ == '__main__':
+    # 适配 Render 的端口
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
