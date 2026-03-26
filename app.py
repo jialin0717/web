@@ -1,5 +1,6 @@
 import os
 import certifi
+import ssl
 from flask import Flask, render_template, jsonify, request
 from pymongo import MongoClient
 from datetime import datetime
@@ -12,11 +13,11 @@ MONGO_URI = os.environ.get('MONGO_URI') or "mongodb+srv://yonsei66760555_db_user
 ca = certifi.where()
 
 try:
-    # 只需要这一次 MongoClient 定义，包含所有修复参数
     client = MongoClient(
         MONGO_URI,
         serverSelectionTimeoutMS=5000,
-        tlsCAFile=ca,
+        # 强制创建一个不校验的 SSL 上下文
+        ssl_cert_reqs=ssl.CERT_NONE,
         tlsAllowInvalidCertificates=True
     )
     db = client.jialin_portfolio
@@ -25,6 +26,8 @@ try:
 except Exception as e:
     print(f"❌ MongoDB 连接失败: {e}")
     db = None
+
+
 # ==========================================
 # 2. 数据库初始化 (保留你写的所有珍贵文字)
 # ==========================================
