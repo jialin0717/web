@@ -113,7 +113,13 @@
         btn.classList.remove('playing'); // 关闭发光效果
     }
 } 
-    const demoProjects = [
+   
+    // 修改后的 fetchProjects 函数
+// 修改后的 fetchProjects 函数：直接显示本地数据
+function fetchProjects() {
+    switchView('dynamic'); // 切换到显示区域
+    const area = document.getElementById('dynamic-area');
+     const demoProjects = [
     {
         "id": 1,
         "title": "延世大学中国学人学者联谊会 工作经历",
@@ -139,12 +145,6 @@
         "desc": "1.简单计算机编程能力\n2.大型活动策划与执行能力（中国日总导演）\n3.跨文化环境适应与协作能力..."
     }
 ]
-    // 修改后的 fetchProjects 函数
-// 修改后的 fetchProjects 函数：直接显示本地数据
-function fetchProjects() {
-    switchView('dynamic'); // 切换到显示区域
-    const area = document.getElementById('dynamic-area');
-    
     // 1. 构建标题和容器
     let html = `
         <h2 style="color:var(--tech-blue); border-left:4px solid var(--tech-blue); padding-left:15px; margin-bottom:25px;">
