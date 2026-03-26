@@ -4,35 +4,27 @@ from flask import Flask, render_template, jsonify, request
 from pymongo import MongoClient
 from datetime import datetime
 
+# 只需要定义一次 app
 app = Flask(__name__)
 
-# ==========================================
-# 1. 数据库配置 (支持 Render 环境变量)
-# ==========================================
-# 优先读取 Render 里的环境变量，如果没有则使用你提供的字符串
-MONGO_URI = os.environ.get(
-    'MONGO_URI') or "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
-
-# 获取 certifi 证书路径，解决 SSL 报错的核心
+# 获取配置：优先用 Render 的环境变量，备选本地字符串
+MONGO_URI = os.environ.get('MONGO_URI') or "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
 ca = certifi.where()
 
 try:
-    # 关键修改：加入 tlsCAFile 和 tlsAllowInvalidCertificates
+    # 只需要这一次 MongoClient 定义，包含所有修复参数
     client = MongoClient(
         MONGO_URI,
         serverSelectionTimeoutMS=5000,
         tlsCAFile=ca,
         tlsAllowInvalidCertificates=True
     )
-    # 指定数据库名称
     db = client.jialin_portfolio
-    client.admin.command('ping')  # 测试连接
-    print("✅ 成功连接到 MongoDB Atlas！")
+    client.admin.command('ping')
+    print("✅ MongoDB 连接及 SSL 握手成功！")
 except Exception as e:
     print(f"❌ MongoDB 连接失败: {e}")
     db = None
-
-
 # ==========================================
 # 2. 数据库初始化 (保留你写的所有珍贵文字)
 # ==========================================
@@ -162,7 +154,11 @@ def get_projects():
 # ... 保留你其他的 /api/click, /api/message 等路由 ...
 
 if __name__ == '__main__':
-    # 只有本地运行时才会初始化数据库
-    if os.environ.get('RENDER') is None:
+    # 判断环境：Render 会自动设置各种环境变量，本地通常没有
+    if os.environ.get('RENDER'):
+        # 生产环境运行
+        app.run(host='0.0.0.0', port=10000)
+    else:
+        # 本地环境运行，自动初始化数据库
         init_db()
-    app.run(host='0.0.0.0', port=10000)
+        app.run(host='127.0.0.1', port=5000, debug=True)
