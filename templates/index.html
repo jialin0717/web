@@ -102,24 +102,7 @@
     const audio = document.getElementById('bg-music');
     const icon = document.getElementById('music-icon');
     const btn = document.getElementById('music-btn');
-
-    if (audio.paused) {
-        audio.play();
-        icon.className = "fas fa-pause"; // 切换为暂停图标
-        btn.classList.add('playing');    // 开启发光效果
-    } else {
-        audio.pause();
-        icon.className = "fas fa-play";  // 切换为播放图标
-        btn.classList.remove('playing'); // 关闭发光效果
-    }
-} 
-   
-    // 修改后的 fetchProjects 函数
-// 修改后的 fetchProjects 函数：直接显示本地数据
-function fetchProjects() {
-    switchView('dynamic'); // 切换到显示区域
-    const area = document.getElementById('dynamic-area');
-     const demoProjects = [
+    const demoProjects = [
     {
         "id": 1,
         "title": "延世大学中国学人学者联谊会 工作经历",
@@ -145,35 +128,50 @@ function fetchProjects() {
         "desc": "1.简单计算机编程能力\n2.大型活动策划与执行能力（中国日总导演）\n3.跨文化环境适应与协作能力..."
     }
 ]
-    // 1. 构建标题和容器
-    let html = `
-        <h2 style="color:var(--tech-blue); border-left:4px solid var(--tech-blue); padding-left:15px; margin-bottom:25px;">
-            <i class="fas fa-layer-group"></i> 核心项目与经历 | PROJECTS
-        </h2>
-        <div class="course-grid">
-    `;
 
-    // 2. 遍历你 script 开头定义的 demoProjects 数组
-    demoProjects.forEach(p => {
-        // 将对象转为字符串，用于点击详情（注意处理引号）
-        const pData = JSON.stringify(p).replace(/"/g, '&quot;');
+    if (audio.paused) {
+        audio.play();
+        icon.className = "fas fa-pause"; // 切换为暂停图标
+        btn.classList.add('playing');    // 开启发光效果
+    } else {
+        audio.pause();
+        icon.className = "fas fa-play";  // 切换为播放图标
+        btn.classList.remove('playing'); // 关闭发光效果
+    }
+} 
+   
+    // 修改后的 fetchProjects 函数
+// 修改后的 fetchProjects 函数：直接显示本地数据
+function fetchProjects() {
+        switchView('dynamic'); 
+        const area = document.getElementById('dynamic-area');
         
-        html += `
-            <div class="card" onclick="showProjectDetail(${pData})" style="cursor:pointer; border-left:4px solid var(--tech-blue); transition: 0.3s; position:relative; overflow:hidden;">
-                <h3 style="color:var(--tech-blue); margin-bottom:10px; font-size:1.2rem;">${p.title}</h3>
-                <div style="margin-bottom:12px;">
-                    ${p.tags.map(t => `<small style="background:rgba(0,210,255,0.15); color:var(--tech-blue); padding:2px 8px; border-radius:4px; margin-right:5px; font-size:0.75rem;">${t}</small>`).join('')}
-                </div>
-                <p style="font-size:0.85rem; opacity:0.7;">点击查看详细经历描述与职责...</p>
-                <i class="fas fa-chevron-right" style="position:absolute; right:20px; bottom:20px; opacity:0.3;"></i>
-            </div>`;
-    });
+        let html = `
+            <h2 style="color:var(--tech-blue); border-left:4px solid var(--tech-blue); padding-left:15px; margin-bottom:25px;">
+                <i class="fas fa-layer-group"></i> 核心项目与经历 | PROJECTS
+            </h2>
+            <div class="course-grid">
+        `;
 
-    html += '</div>';
+        demoProjects.forEach(p => {
+            const pData = JSON.stringify(p).replace(/"/g, '&quot;');
+            html += `
+                <div class="card" onclick="showProjectDetail(${pData})" style="cursor:pointer; border-left:4px solid var(--tech-blue); transition: 0.3s; position:relative; overflow:hidden;">
+                    <h3 style="color:var(--tech-blue); margin-bottom:10px; font-size:1.2rem;">${p.title}</h3>
+                    <div style="margin-bottom:12px;">
+                        ${p.tags.map(t => `<small style="background:rgba(0,210,255,0.15); color:var(--tech-blue); padding:2px 8px; border-radius:4px; margin-right:5px; font-size:0.75rem;">${t}</small>`).join('')}
+                    </div>
+                    <p style="font-size:0.85rem; opacity:0.7;">点击查看详细经历描述与职责...</p>
+                    <i class="fas fa-chevron-right" style="position:absolute; right:20px; bottom:20px; opacity:0.3;"></i>
+                </div>`;
+        });
+        html += '</div>';
+        area.innerHTML = html;
+    }
     
     // 3. 渲染到界面
     area.innerHTML = html;
-}
+
     function loadProjects() {
     const projectContainer = document.getElementById('project-list'); // 假设你的容器 ID 是这个
     projectContainer.innerHTML = ''; // 清空加载动画
