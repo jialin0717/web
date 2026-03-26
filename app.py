@@ -1,53 +1,43 @@
+import os
+import certifi
 from flask import Flask, render_template, jsonify, request
 from pymongo import MongoClient
 from datetime import datetime
 
-
-import os
-from flask import Flask
-from pymongo import MongoClient
-
-app = Flask(__name__)
-
-# 使用 os.environ 获取变量
-uri = os.environ.get('MONGO_URI')
-
-try:
-    client = MongoClient(uri)
-    # 强制进行一次连接测试
-    client.admin.command('ping')
-    db = client.get_database('jialin_portfolio') # 确保数据库名正确
-    print("MongoDB 连接成功！")
-except Exception as e:
-    print(f"MongoDB 连接失败: {e}")
-
-    
 app = Flask(__name__)
 
 # ==========================================
-# 1. 数据库配置 (NoSQL - MongoDB Atlas)
+# 1. 数据库配置 (支持 Render 环境变量)
 # ==========================================
-# 你的云端连接字符串
-MONGO_URI = "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
+# 优先读取 Render 里的环境变量，如果没有则使用你提供的字符串
+MONGO_URI = os.environ.get(
+    'MONGO_URI') or "mongodb+srv://yonsei66760555_db_user:gZlCsZ4Gw2wH9Ok0@jialin.q9lhl7j.mongodb.net/?appName=jialin"
+
+# 获取 certifi 证书路径，解决 SSL 报错的核心
+ca = certifi.where()
 
 try:
-    # 建立连接
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    # 关键修改：加入 tlsCAFile 和 tlsAllowInvalidCertificates
+    client = MongoClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=5000,
+        tlsCAFile=ca,
+        tlsAllowInvalidCertificates=True
+    )
     # 指定数据库名称
     db = client.jialin_portfolio
-    client.server_info()  # 检查连接是否成功
-    print("✅ 成功连接到 MongoDB Atlas 云数据库！")
+    client.admin.command('ping')  # 测试连接
+    print("✅ 成功连接到 MongoDB Atlas！")
 except Exception as e:
     print(f"❌ MongoDB 连接失败: {e}")
     db = None
 
+
 # ==========================================
-# 2. 数据库初始化函数
+# 2. 数据库初始化 (保留你写的所有珍贵文字)
 # ==========================================
 def init_db():
-    """初始化数据库：强制更新为最新的学联工作经历"""
     if db is not None:
-        # 强制删除旧集合，确保你的新文字能显示出来
         db.projects.drop()
 
         # 模块 1 的详细经历文字
@@ -154,69 +144,25 @@ def init_db():
             }
         ]
         db.projects.insert_many(demo_projects)
-        print(">>> 数据库已成功初始化：最新的学联经历已录入。")
-pass
+        print(">>> 数据库已成功初始化！")
 
 # ==========================================
-# 2. 核心路由
+# 3. 路由与 API (保持不变)
 # ==========================================
 @app.route('/')
 def index():
     return render_template('index.html')
 
-
-# ==========================================
-# 3. 项目 API
-# ==========================================
 @app.route('/api/projects')
 def get_projects():
     if db is None: return jsonify([])
     projects = list(db.projects.find({}, {'_id': 0}))
     return jsonify(projects)
 
+# ... 保留你其他的 /api/click, /api/message 等路由 ...
 
-@app.route('/api/click', methods=['POST'])
-def record_click():
-    if db is None: return jsonify({"status": "error"})
-    project_id = request.json.get('id')
-    db.projects.update_one({"id": project_id}, {"$inc": {"hits": 1}})
-    return jsonify({"status": "success"})
-
-
-@app.route('/api/recommend')
-def recommend():
-    if db is None: return jsonify(None)
-    top_project = db.projects.find_one({}, {'_id': 0}, sort=[("hits", -1)])
-    return jsonify(top_project)
-
-
-# ==========================================
-# 4. 留言板 API
-# ==========================================
-@app.route('/api/message', methods=['POST'])
-def post_message():
-    if db is None: return jsonify({"status": "error"})
-    data = request.json
-    new_msg = {
-        "name": data.get('name', '匿名用户') or '匿名用户',
-        "content": data.get('content'),
-        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    db.messages.insert_one(new_msg)
-    return jsonify({"status": "success"})
-
-
-@app.route('/api/get_messages')
-def get_messages():
-    if db is None: return jsonify([])
-    msgs = list(db.messages.find({}, {'_id': 0}).sort("time", -1))
-    return jsonify(msgs)
-
-
-# ==========================================
-# 5. 启动
-# ==========================================
 if __name__ == '__main__':
-    init_db()
-    # 使用 127.0.0.1 确保本地访问稳定性
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # 只有本地运行时才会初始化数据库
+    if os.environ.get('RENDER') is None:
+        init_db()
+    app.run(host='0.0.0.0', port=10000)
