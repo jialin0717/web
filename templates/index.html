@@ -143,7 +143,7 @@
     // 修改后的 fetchProjects 函数
 // 修改后的 fetchProjects 函数：直接显示本地数据
 function fetchProjects() {
-        switchView('dynamic'); 
+        switchView('dynamic'); // 切换到动态区域
         const area = document.getElementById('dynamic-area');
         
         let html = `
@@ -153,20 +153,39 @@ function fetchProjects() {
             <div class="course-grid">
         `;
 
+        // 直接遍历上面的 demoProjects 数组
         demoProjects.forEach(p => {
             const pData = JSON.stringify(p).replace(/"/g, '&quot;');
             html += `
-                <div class="card" onclick="showProjectDetail(${pData})" style="cursor:pointer; border-left:4px solid var(--tech-blue); transition: 0.3s; position:relative; overflow:hidden;">
-                    <h3 style="color:var(--tech-blue); margin-bottom:10px; font-size:1.2rem;">${p.title}</h3>
+                <div class="card" onclick="showProjectDetail(${pData})" style="cursor:pointer; border-left:4px solid var(--tech-blue); transition: 0.3s; position:relative;">
+                    <h3 style="color:var(--tech-blue); margin-bottom:10px;">${p.title}</h3>
                     <div style="margin-bottom:12px;">
-                        ${p.tags.map(t => `<small style="background:rgba(0,210,255,0.15); color:var(--tech-blue); padding:2px 8px; border-radius:4px; margin-right:5px; font-size:0.75rem;">${t}</small>`).join('')}
+                        ${p.tags.map(t => `<small style="background:rgba(0,210,255,0.15); color:var(--tech-blue); padding:2px 8px; border-radius:4px; margin-right:5px;">${t}</small>`).join('')}
                     </div>
                     <p style="font-size:0.85rem; opacity:0.7;">点击查看详细经历描述与职责...</p>
-                    <i class="fas fa-chevron-right" style="position:absolute; right:20px; bottom:20px; opacity:0.3;"></i>
                 </div>`;
         });
+
         html += '</div>';
         area.innerHTML = html;
+    }
+
+    // 3. 详情展示函数
+    function showProjectDetail(p) {
+        const area = document.getElementById('dynamic-area');
+        area.innerHTML = `
+            <div style="margin-bottom:20px;">
+                <span onclick="fetchProjects()" style="cursor:pointer; color:var(--tech-blue); font-weight:bold;">
+                    <i class="fas fa-arrow-left"></i> 返回项目列表
+                </span>
+            </div>
+            <div class="card" style="animation: fadeIn 0.4s; line-height:1.8;">
+                <h2 style="color:var(--tech-blue); border-bottom:1px solid rgba(0,210,255,0.2); padding-bottom:10px;">${p.title}</h2>
+                <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:10px; margin:20px 0; white-space: pre-line;">
+                    ${p.desc}
+                </div>
+            </div>
+        `;
     }
     
     // 3. 渲染到界面
