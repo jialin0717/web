@@ -141,29 +141,31 @@
 ]
     // 修改后的 fetchProjects 函数
 function fetchProjects() {
-    switchView('dynamic');
+    switchView('dynamic'); // 切换到动态显示区域
     const area = document.getElementById('dynamic-area');
     
-    // 标题
+    // 1. 直接构造 HTML 结构，不走网络请求
     let html = '<h2><i class="fas fa-layer-group"></i> 核心项目与经历</h2>';
     html += '<div class="course-grid">';
     
-    // 直接使用你定义在 script 顶部的 demoProjects 静态数据
-    // 这样就不受 MongoDB 报错的影响了
+    // 2. 遍历你定义在 script 开头的那个 demoProjects 数组
     demoProjects.forEach(p => {
-        // 处理特殊字符防止 JSON 解析失败
+        // 将项目对象转为字符串，用于点击时显示详情
         const pData = JSON.stringify(p).replace(/"/g, '&quot;');
+        
         html += `
             <div class="card" onclick="showProjectDetail(${pData})" style="cursor:pointer; border-left:4px solid var(--tech-blue); transition: 0.3s;">
                 <h3 style="color:var(--tech-blue); margin-bottom:10px;">${p.title}</h3>
-                <p style="font-size:0.85rem; opacity:0.7;">点击查看详细经历描述</p>
-                <div style="margin-top:10px;">
-                    ${p.tags.map(t => `<small style="background:rgba(0,210,255,0.1); padding:2px 8px; border-radius:4px; margin-right:5px;">${t}</small>`).join('')}
+                <div style="margin-bottom:10px;">
+                    ${p.tags.map(t => `<small style="background:rgba(0,210,255,0.1); padding:2px 8px; border-radius:4px; margin-right:5px; font-size:0.7rem;">${t}</small>`).join('')}
                 </div>
+                <p style="font-size:0.85rem; opacity:0.7;">点击查看详细经历描述</p>
             </div>`;
     });
     
     html += '</div>';
+    
+    // 3. 将内容注入到页面
     area.innerHTML = html;
 }
     function loadProjects() {
